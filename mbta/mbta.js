@@ -147,7 +147,7 @@ function renderClosestPath() {
         // Defaults to Davis Square station
         var closest = "Davis";
         for (var station in stations) {
-                if (findDistance(station) > findDistance(closest)) {
+                if (findDistance(station) < findDistance(closest)) {
                         closest = station;
                 }
         }
@@ -163,6 +163,6 @@ function renderClosestPath() {
 }
 
 function findDistance(station) {
-        stationLocation = {lat: stations[station][0], lng: stations[station][1]};
+        stationLocation = new google.maps.LatLng(stations[station][0], stations[station][1]);
         return google.maps.geometry.spherical.computeDistanceBetween(me, stationLocation);
 }
