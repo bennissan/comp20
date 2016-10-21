@@ -44,7 +44,6 @@ function init()
                         var rawData = request.responseText;
                         var trainData = JSON.parse(rawData);
                         timeData = getTimeData(trainData);
-                        console.log(timeData);
                         
                 }
         }
@@ -138,8 +137,15 @@ function renderMarkers() {
                                 var content = "<h1>" + this.title + "</h1>" + "<p>";
                                 if (times.length > 0) {
                                         for (var i = 0; i < times.length; i++) {
-                                                content += "A train to " + times[i].destination + " will arrive in "
-                                                        + times[i].time + " minutes. <br>"
+                                                time = times[i].time;
+                                                content += "A train bound to " + times[i].destination;
+                                                if (time === 0) {
+                                                        content += " is now arriving. <br>"
+                                                } else if (time === 1) {
+                                                        content += " will arrive in 1 minute. <br>"
+                                                } else {
+                                                        content += " will arrive in " + time + " minutes. <br>"
+                                                }
                                         }
                                 } else {
                                         content += "No trains are expected in the near future!"
