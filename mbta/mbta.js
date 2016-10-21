@@ -10,7 +10,6 @@ var myOptions = {
 var map;
 var marker;
 var infowindow = new google.maps.InfoWindow();
-var trainData;
 
 var stations = {"South Station":     [42.352271,   -71.05524200000001],
                 "Andrew":            [42.330154,   -71.057655],
@@ -40,11 +39,11 @@ function init()
         map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
         request.open("get", "https://rocky-taiga-26352.herokuapp.com/redline.json", true);
         request.onreadystatechange = function() {
-                        if (request.readyState == 4 && request.status == 200) {
+                if (request.readyState == 4 && request.status == 200) {
                         var rawData = request.responseText;
                         var trainData = JSON.parse(rawData);
                         timeData = getTimeData(trainData);
-                        
+                
                 }
         }
         request.send();
