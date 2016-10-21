@@ -10,6 +10,7 @@ var myOptions = {
 var map;
 var marker;
 var infowindow = new google.maps.InfoWindow();
+var trainData;
 
 var stations = {"South Station":     [42.352271,   -71.05524200000001],
                 "Andrew":            [42.330154,   -71.057655],
@@ -37,7 +38,46 @@ var stations = {"South Station":     [42.352271,   -71.05524200000001],
 function init()
 {
         map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+        request.open("get", "https://rocky-taiga-26352.herokuapp.com/redline.json", true);
+        request.onreadystatechange = function() {
+                        if (request.readyState == 4 && request.status == 200) {
+                        var rawData = request.responseText;
+                        var trainData = JSON.parse(rawData);
+                        timeData = getTimeData(trainData);
+                        console.log(timeData);
+                        
+                }
+        }
+        request.send();
         getMyLocation();
+}
+
+// Pulls times for all stops from JSON object
+function getTimeData(trainData) {
+        var timeData = {"South Station": [], "Andrew": [], "Porter Square": [], "Harvard Square": [],
+                        "JFK/UMass": [], "Savin Hill": [], "Park Street": [], "Broadway": [],
+                        "North Quincy": [], "Shawmut": [], "Davis": [], "Alewife": [], "Kendall/MIT": [],
+                        "Charles/MGH": [], "Downtown Crossing": [], "Quincy Center": [], "Quincy Adams": [], "Ashmont": [],
+                        "Wollaston": [], "Fields Corner": [], "Central Square": [], "Braintree": []};
+        // Searches for all predicted stop times on all trips and appends to respective stop's array
+        trips = trainData.TripList.Trips;
+        for (var i = 0; i < trips.length; i++) {
+                var destination = trips[i].Destination;
+                var predictions = trips[i].Predictions;
+                for (var j = 0; j < predictions.length; j++) {
+                        // Pulls stop and expected arrival time (forcing times to positive to avoid -0)
+                        var stop = predictions[j].Stop;
+                        var time = Math.abs((predictions[j].Seconds / 60).toFixed(0))
+                        timeData[stop].push({destination: destination, time: time});
+                }
+        }
+        // Sorts times from closest to farthest
+        for (var stop in timeData) {
+                timeData[stop].sort(function(train1, train2) {
+                        return train1.time - train2.time;
+                });
+        }
+        return timeData;
 }
 
 function getMyLocation() {
@@ -60,23 +100,25 @@ function renderMap()
         // Update map and go there...
         map.panTo(me);
 
+        renderClosestPath();
         renderMarkers();
         renderRedLine();
-        renderClosestPath();
 }
 
 // Renders markers for your location and each T station
 function renderMarkers() {
         // Renders your location
         marker = new google.maps.Marker({
-                title: "You Are Here",
+                title: "You are here!",
                 position: me,
                 map: map
         });
 
         google.maps.event.addListener(marker, 'click', (function() {
                 return function() {
-                        infowindow.setContent(this.title);
+                        infowindow.setContent("<h1>" + this.title + "</h1>"
+                                             + "<p> The closest Red Line station to you is " + closest
+                                             + ", which is " + (closestDistance / 1609.34).toFixed(2) + " miles away. </p>");
                         infowindow.open(map, this);
                 }
               })(marker));
@@ -92,7 +134,18 @@ function renderMarkers() {
 
                 google.maps.event.addListener(marker, 'click', (function() {
                         return function() {
-                                infowindow.setContent(this.title);
+                                var times = timeData[this.title];
+                                var content = "<h1>" + this.title + "</h1>" + "<p>";
+                                if (times.length > 0) {
+                                        for (var i = 0; i < times.length; i++) {
+                                                content += "A train to " + times[i].destination + " will arrive in "
+                                                        + times[i].time + " minutes. <br>"
+                                        }
+                                } else {
+                                        content += "No trains are expected in the near future!"
+                                }
+                                content += "</p>"
+                                infowindow.setContent(content);
                                 infowindow.open(map, this);
                         }
                       })(marker));
@@ -145,12 +198,13 @@ function renderRedLine() {
 // Finds closest Red Line station and renders a path from your location to it
 function renderClosestPath() {
         // Defaults to Davis Square station
-        var closest = "Davis";
+        closest = "Davis";
         for (var station in stations) {
                 if (findDistance(station) < findDistance(closest)) {
                         closest = station;
                 }
         }
+        closestDistance = findDistance(closest);
         var path = [me, {lat: stations[closest][0], lng: stations[closest][1]}];
         var line = new google.maps.Polyline({
                   path: path,
