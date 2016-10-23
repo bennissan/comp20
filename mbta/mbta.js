@@ -121,13 +121,17 @@ function renderMarkers() {
                                 var request = new XMLHttpRequest();
                                 request.open("get", "https://rocky-taiga-26352.herokuapp.com/redline.json", true);
 
+                                var content = "<h1>" + currentMarker + "</h1>"
+                                            + "<p> Loading incoming trains . . . </p>";
+                                infowindow.setContent(content);
+
                                 request.onreadystatechange = function() {
                                         if (request.readyState == 4 && request.status == 200) {
                                                 var rawData = request.responseText;
                                                 var trainData = JSON.parse(rawData);
                                                 times = getTimeData(trainData, currentMarker);
 
-                                                var content = "<h1>" + currentMarker + "</h1>" + "<p>";
+                                                content = "<h1>" + currentMarker + "</h1>" + "<p>";
                                                 if (times.length > 0) {
                                                         for (var i = 0; i < times.length; i++) {
                                                                 time = times[i][1];
@@ -144,9 +148,11 @@ function renderMarkers() {
                                                         content += "No trains are expected in the near future!"
                                                 }
                                                 content += "</p>"
-
-                                                infowindow.setContent(content);
+                                        } else {
+                                                content = "<h1>" + currentMarker + "</h1>"
+                                                        + "<p> Incoming trains failed to load.  Try again! </p>"
                                         }
+                                        infowindow.setContent(content);
                                 }
 
                                 request.send();
