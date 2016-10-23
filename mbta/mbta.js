@@ -137,7 +137,7 @@ function renderMarkers() {
                                                                 time = times[i][1];
                                                                 content += "A train bound to " + times[i][0];
                                                                 if (time === 0) {
-                                                                        content += " is now arriving. <br>"
+                                                                        content += " is now arriving! <br>"
                                                                 } else if (time === 1) {
                                                                         content += " will arrive in 1 minute. <br>"
                                                                 } else {
