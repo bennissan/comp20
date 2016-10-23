@@ -1,6 +1,5 @@
 var myLat = 0;
 var myLng = 0;
-var request = new XMLHttpRequest();
 var me = new google.maps.LatLng(myLat, myLng);
 var myOptions = {
         zoom: 13, // The larger the zoom number, the bigger the zoom
@@ -37,44 +36,29 @@ var stations = {"South Station":     [42.352271,   -71.05524200000001],
 function init()
 {
         map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
-        request.open("get", "https://rocky-taiga-26352.herokuapp.com/redline.json", true);
-        request.onreadystatechange = function() {
-                if (request.readyState == 4 && request.status == 200) {
-                        var rawData = request.responseText;
-                        var trainData = JSON.parse(rawData);
-                        timeData = getTimeData(trainData);
-                
-                }
-        }
-        request.send();
         getMyLocation();
 }
 
 // Pulls times for all stops from JSON object
-function getTimeData(trainData) {
-        var timeData = {"South Station": [], "Andrew": [], "Porter Square": [], "Harvard Square": [],
-                        "JFK/UMass": [], "Savin Hill": [], "Park Street": [], "Broadway": [],
-                        "North Quincy": [], "Shawmut": [], "Davis": [], "Alewife": [], "Kendall/MIT": [],
-                        "Charles/MGH": [], "Downtown Crossing": [], "Quincy Center": [], "Quincy Adams": [], "Ashmont": [],
-                        "Wollaston": [], "Fields Corner": [], "Central Square": [], "Braintree": []};
-        // Searches for all predicted stop times on all trips and appends to respective stop's array
+function getTimeData(trainData, stop) {
+        var timeData = [];
+        // Searches for all predicted stop times on given trip and appends to respective stop's array
         trips = trainData.TripList.Trips;
         for (var i = 0; i < trips.length; i++) {
                 var destination = trips[i].Destination;
                 var predictions = trips[i].Predictions;
                 for (var j = 0; j < predictions.length; j++) {
-                        // Pulls stop and expected arrival time (forcing times to positive to avoid -0)
-                        var stop = predictions[j].Stop;
-                        var time = Math.abs((predictions[j].Seconds / 60).toFixed(0))
-                        timeData[stop].push({destination: destination, time: time});
+                        // Pulls expected arrival time for given stop (forcing times to positive to avoid -0)
+                        if (predictions[j].Stop === stop){
+                                var time = Math.abs((predictions[j].Seconds / 60).toFixed(0))
+                                timeData.push([destination, time]);
+                        }
                 }
         }
         // Sorts times from closest to farthest
-        for (var stop in timeData) {
-                timeData[stop].sort(function(train1, train2) {
-                        return train1.time - train2.time;
-                });
-        }
+        timeData.sort(function(train1, train2) {
+                return train1[1] - train2[1];
+        });
         return timeData;
 }
 
@@ -132,25 +116,40 @@ function renderMarkers() {
 
                 google.maps.event.addListener(marker, 'click', (function() {
                         return function() {
-                                var times = timeData[this.title];
-                                var content = "<h1>" + this.title + "</h1>" + "<p>";
-                                if (times.length > 0) {
-                                        for (var i = 0; i < times.length; i++) {
-                                                time = times[i].time;
-                                                content += "A train bound to " + times[i].destination;
-                                                if (time === 0) {
-                                                        content += " is now arriving. <br>"
-                                                } else if (time === 1) {
-                                                        content += " will arrive in 1 minute. <br>"
+                                var times;
+                                var currentMarker = this.title;
+                                var request = new XMLHttpRequest();
+                                request.open("get", "https://rocky-taiga-26352.herokuapp.com/redline.json", true);
+
+                                request.onreadystatechange = function() {
+                                        if (request.readyState == 4 && request.status == 200) {
+                                                var rawData = request.responseText;
+                                                var trainData = JSON.parse(rawData);
+                                                times = getTimeData(trainData, currentMarker);
+
+                                                var content = "<h1>" + currentMarker + "</h1>" + "<p>";
+                                                if (times.length > 0) {
+                                                        for (var i = 0; i < times.length; i++) {
+                                                                time = times[i][1];
+                                                                content += "A train bound to " + times[i][0];
+                                                                if (time === 0) {
+                                                                        content += " is now arriving. <br>"
+                                                                } else if (time === 1) {
+                                                                        content += " will arrive in 1 minute. <br>"
+                                                                } else {
+                                                                        content += " will arrive in " + time + " minutes. <br>"
+                                                                }
+                                                        }
                                                 } else {
-                                                        content += " will arrive in " + time + " minutes. <br>"
+                                                        content += "No trains are expected in the near future!"
                                                 }
+                                                content += "</p>"
+
+                                                infowindow.setContent(content);
                                         }
-                                } else {
-                                        content += "No trains are expected in the near future!"
                                 }
-                                content += "</p>"
-                                infowindow.setContent(content);
+
+                                request.send();
                                 infowindow.open(map, this);
                         }
                       })(marker));
