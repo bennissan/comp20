@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Captain's Log</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script>
+        $(document).ready(function(){
+                if (localStorage.log) {
+                    document.getElementById("log").innerHTML = localStorage.log;
+                }
+                $("#msg").keypress(function(event) {
+                    if (event.which === 13) {
+                        var date = new Date();
+                        var weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                        var message = "<p> " + weekdays[date.getDay()] + " " + date.toJSON().slice(0,10)
+                                    + " " + date.toJSON().slice(11,19) + " — " + $("#msg").val() + " </p>";
+                        $("#log").append(message);
+                        $("#msg").val("");
+                        localStorage.log = $("#log").html();
+                    }
+                });
+            });
+    </script>
+</head>
+
+<body>
+    <h1>Captain's Log</h1>
+    <h3>New entry: <input type="text" id="msg" name="msg" size="30" /></h3>
+    <div id="log"></div>
+</body>
+</html>
