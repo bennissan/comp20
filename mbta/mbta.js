@@ -119,7 +119,7 @@ function renderMarkers() {
                                 var times;
                                 var currentMarker = this.title;
                                 var request = new XMLHttpRequest();
-                                request.open("get", "https://rocky-taiga-26352.herokuapp.com/redline.json", true);
+                                request.open("get", "https://howling-catacombs-32915.herokuapp.com/redline.json", true);
 
                                 var content = "<h1>" + currentMarker + "</h1>"
                                             + "<p> Loading incoming trains . . . </p>";

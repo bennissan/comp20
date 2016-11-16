@@ -144,7 +144,7 @@ GameManager.prototype.move = function (direction) {
           type: "POST",
           url: "http://localhost:5000/submit.json",
           contentType: 'application/json',
-          data: data;
+          data: data
         });
     }
     return;
