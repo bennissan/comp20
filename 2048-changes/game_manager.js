@@ -142,7 +142,7 @@ GameManager.prototype.move = function (direction) {
         var data = {"username": username, "score": score, "grid": JSON.stringify(grid)};
         $.ajax({
           type: "POST",
-          url: "http://localhost:5000/submit.json",
+          url: "http://twentyfortyeight.herokuapp.com/submit.json",
           contentType: 'application/json',
           data: data
         });
