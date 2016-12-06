@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+<title>Security Assessment Document</title>
+<link rel="stylesheet" href="style.css">
+</head>
+    
+<body>
+
+<h1> Security Assessment Document </h1>
+<h2> Ben Nissan </h2>
+
+<h3> Introduction </h3>
+<p> The product at hand is a Game Center web application for the popular web game 2048.  This application includes three components: a submission path to submit new scores from a completed 2048 game, a scores page to display all scores associated with a given user, and an overall high scores page.  I have been hired to test this product for security vulnerabilities and privacy issues. </p>
+
+<h3> Methodology </h3>
+<p> I began by assessing the application as a black-box, considering where security vulnerabilities might pop up based on my experience with my own project.  This led me to attempt a NoSQL injection on the scores.json page, as I doubted that it would be well-secured and could check its security easily.  After successfully doing so, I moved on to white-box attacks; scouring the source code drew me to attempt attacks on the submit.json POST request.  I successfully accomplished this by submitting malicious parameters through curl, accomplishing both an XSS attack and an HTML injection. </p>
+
+<h3> Abstract of Findings </h3>
+<p>
+I found that security issues with this application largely resulted from not validating and/or sanitizing user input.  That is, it failed on two counts:
+<ol>
+    <li>
+        Making sure that data provided by the user was not able to run malicious code or display malicious content.
+    </li>
+    <li>
+        Stripping data provided by the user of text that could be used to run malicious code or display malicious content.
+    </li>
+</ol>
+These problems were generally resolved either by immediately checking that user-provided data was "clean" (i.e., that it fit the above criteria), or by immediately "cleaning" it (i.e., making it fit the above criteria).
+</p>
+
+<h3> Issues Found </h3>
+<ul>
+    <li> NoSQL Injection
+        <ul>
+            <li>
+                Location: scores.json page
+            </li>
+            <li>
+                Severity: Medium.  In this particular application, there is little data of importance that can be accessed through a NoSQL injection.  However, if the application used not only usernames, but also passwords, this would serve as an enormous security vulnerability that could be used to pull passwords en masse.
+            </li>
+            <li>
+                Description: In an initial black-box attack, I guessed that query strings provided to scores.json were not sanitized before being used to search the database.  By visiting the following URL (note the query string requesting all non-empty usernames): <br>
+                <code> https://chickenofthesea.herokuapp.com/scores.json?username[$ne]="" </code> <br>
+                I was happy to find that the entire contents of the scores database were laid out for me: <img src="nosql1.png" alt="NoSQL Injection 1">
+            </li>
+            <li>
+                Recommendation: To fix this issue I would recommend sanitizing data from the query string using an npm package such as <b>mongo-sanitize</b>: <br>
+                <code>
+                      var username = mongo-sanitize(request.query.username);
+                </code>
+            </li>
+        </ul>
+    </li>
+    <li> XSS Attack 
+        <ul>
+            <li>
+                Location: submit.json POST request
+            </li>
+            <li>
+                Severity: High.  Any and all Javascript code can be maliciously inserted here.
+            </li>
+            <li>
+                Description: Looking at the source code, I saw that there was no validation of the data provided to the server for submission.  Using curl, and providing the following query string: <br>
+                <code> "username=&lt;script&gt;alert('hacked')&lt;/script&gt;&amp;score=4242&amp;grid={}" </code> <br>
+                I was able to insert the malicious script into the database, which was then run upon accessing the high scores page: <img src="xss1.png" alt="XSS Attack 1">
+            </li>
+            <li>
+                Recommendation: To fix this issue, I would recommend validating and sanitizing input provided to submit.json using an npm package such as <b>validator</b>: <br>
+                <code>
+                    var username = validator.escape(request.body.username); <br>
+                    var score = validator.toInt(request.body.score); <br>
+                    if (validator.isJSON(request.body.grid) { <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var grid = request.body.grid; <br>
+                    }
+                </code> <br>
+                Alternatively (or additionally), I would recommend sanitizing input when displayed on the high scores page itself using an npm package such as Yahoo's <b>xss-filters</b>: <br>
+                <code>
+                    for (var count = 0; count < cursor.length; count++) { <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;indexPage += "&lt;tr&gt;&lt;td&gt;" <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + xssFilters.inHTMLData(cursor[count].username) <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "&lt;/td&gt;&lt;td&gt;" <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + xssFilters.inHTMLData(cursor[count].score) <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "&lt;/td&gt;&lt;td&gt;" <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + xssFilters.inHTMLData(cursor[count].created_at) <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "&lt;/td&gt;&lt;/tr&gt;"; <br>
+                        }
+                </code>
+            </li>
+        </ul>
+    </li>
+    <li> HTML Injection
+        <ul>
+            <li>
+                Location: submit.json POST request
+            </li>
+            <li>
+                Severity: High.  Doing damage with an HTML injection is slightly more roundabout than with a straight XSS attack, but external Javascript can be triggered by injected HTML elements (such as image tags), doing whatever the attacker wants.  Fraudulent or malicious content can also be displayed to the end user at the attacker's whim, presenting an additional risk.
+            </li>
+            <li>
+                Description: The issue raised in the previous XSS vulnerability applies here as well&mdash;any content can be inserted into the database and later displayed to users visiting the high scores page.  Using curl, and providing the following query string: <br>
+                <code> "username=&lt;input type='text'&gt;&amp;score=4343&amp;grid={}" </code> <br>
+                I was able to insert a rogue text input into the database, which was then displayed on the highscores page: <img src="html1.png" alt="HTML Injection 1">
+            </li>
+            <li>
+                Recommendation: To fix this issue, as in the previous XSS vulnerability, I would recommend validating and sanitizing input provided to submit.json using an npm package such as <b>validator</b>: <br>
+                <code>
+                    var username = validator.escape(request.body.username); <br>
+                    var score = validator.toInt(request.body.score); <br>
+                    if (validator.isJSON(request.body.grid) { <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var grid = request.body.grid; <br>
+                    }
+                </code> <br>
+                Alternatively (or additionally), I would recommend sanitizing input when displayed on the high scores page itself using an npm package such as Yahoo's <b>xss-filters</b>: <br>
+                <code>
+                    for (var count = 0; count < cursor.length; count++) { <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;indexPage += "&lt;tr&gt;&lt;td&gt;" <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + xssFilters.inHTMLData(cursor[count].username) <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "&lt;/td&gt;&lt;td&gt;" <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + xssFilters.inHTMLData(cursor[count].score) <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "&lt;/td&gt;&lt;td&gt;" <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + xssFilters.inHTMLData(cursor[count].created_at) <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "&lt;/td&gt;&lt;/tr&gt;"; <br>
+                        }
+                </code>
+            </li>
+        </ul>
+    </li>
+</ul>
+
+<h3> Conclusion </h3>
+<p> </p>
+
+</body>
+
+</html>
