@@ -10,6 +10,7 @@
 <body>
 
 <h1> Security Assessment Document </h1>
+<h2> Comp 20 Assignment 4 </h2>
 <h2> Ben Nissan </h2>
 
 <h3> Introduction </h3>
@@ -132,7 +133,7 @@ These problems were generally resolved either by immediately checking that user-
 </ul>
 
 <h3> Conclusion </h3>
-<p> </p>
+<p> This assessment confirmed the necessity of absolutely not trusting any user input to be non-malicious.  The security concerns revealed here are enormous, to be sure, but all such holes were closed easily by properly validating and/or sanitizing all external data.  For extra security, the range of origins allowed through CORS could be limited; the current configuration allows database submisions from any origin, but this could be further restricted to add a more stringent barrier to malicious attacks.  This somewhat limits the versatility of the Game Center APIs, but significantly improves security for this specific use case.  In general, however, security holes for this project are largely patched by adhering to strict data validation and sanitization practices. </p>
 
 </body>
 
